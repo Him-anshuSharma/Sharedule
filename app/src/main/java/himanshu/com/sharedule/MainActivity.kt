@@ -14,8 +14,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import himanshu.com.sharedule.auth.AuthState
 import himanshu.com.sharedule.auth.AuthViewModel
 import himanshu.com.sharedule.config.AppConfig
+import himanshu.com.sharedule.services.DeviceStatusService
 import himanshu.com.sharedule.ui.screens.HomeScreen
 import himanshu.com.sharedule.ui.screens.LoginScreen
+import himanshu.com.sharedule.ui.screens.ProfileScreen
 import himanshu.com.sharedule.ui.theme.ShareduleTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,6 +31,9 @@ class MainActivity : ComponentActivity() {
         
         // Initialize configuration
         AppConfig.initialize(this)
+        
+        // Start device state monitoring
+        DeviceStatusService.startMonitoring(this)
         
         enableEdgeToEdge()
         setContent {
@@ -53,23 +58,34 @@ class MainActivity : ComponentActivity() {
 fun ShareduleApp() {
     val authViewModel: AuthViewModel = viewModel()
     val authState by authViewModel.authState.collectAsState()
+    var showProfile by remember { mutableStateOf(false) }
     
-    when (authState) {
-        is AuthState.SignedIn -> {
-            HomeScreen(
-                onSignOut = {
-                    // This will be handled by the AuthViewModel
+    when {
+        showProfile && authState is AuthState.SignedIn -> {
+            ProfileScreen(
+                onBackPressed = {
+                    showProfile = false
                 }
             )
         }
-        is AuthState.SignedOut, is AuthState.Initial -> {
+        authState is AuthState.SignedIn -> {
+            HomeScreen(
+                onSignOut = {
+                    // This will be handled by the AuthViewModel
+                },
+                onProfileClick = {
+                    showProfile = true
+                }
+            )
+        }
+        authState is AuthState.SignedOut || authState is AuthState.Initial -> {
             LoginScreen(
                 onSignInSuccess = {
                     // Navigation will be handled automatically by the state change
                 }
             )
         }
-        is AuthState.Loading -> {
+        authState is AuthState.Loading -> {
             // You can add a loading screen here if needed
             LoginScreen(
                 onSignInSuccess = {
@@ -77,7 +93,7 @@ fun ShareduleApp() {
                 }
             )
         }
-        is AuthState.Error -> {
+        authState is AuthState.Error -> {
             LoginScreen(
                 onSignInSuccess = {
                     // Navigation will be handled automatically by the state change

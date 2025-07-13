@@ -1,0 +1,66 @@
+# Ignore Android Studio/IntelliJ project files
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+
+# Ignore build outputs
+/build/
+**/build/
+**/captures/
+**/outputs/
+**/intermediates/
+**/generated/
+
+# Ignore Gradle files and local configuration
+.gradle/
+local.properties
+
+# Ignore APKs, AABs, and mapping files
+*.apk
+*.ap_
+*.aab
+*.mapping
+
+# Ignore log files and test reports
+*.log
+**/test-results/
+**/test-output/
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Ignore miscellaneous files
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+
+# Ignore keystore and signing files
+*.jks
+*.keystore
+
+# Ignore Google Services config (if not to be committed)
+google-services.json
+
+# Ignore coverage reports
+coverage/
+*.ec
+
+# Ignore node_modules (if using JS tooling)
+node_modules/
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore gradle wrapper logs
+gradle/wrapper/gradle-wrapper.properties.lock
+
+# Ignore Fastlane and Firebase Crashlytics files (if used)
+fastlane/report.xml
+crashlytics-build.properties

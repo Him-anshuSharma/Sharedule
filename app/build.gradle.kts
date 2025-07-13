@@ -42,6 +42,8 @@ android {
         compose = true
         buildConfig = true
     }
+    
+
 }
 
 dependencies {
@@ -60,8 +62,10 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.firestore)
     implementation(libs.google.signin)
-    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.coil.compose)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
