@@ -3,6 +3,7 @@ package himanshu.com.sharedule.ui.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import himanshu.com.sharedule.services.DeviceStatusService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,27 +33,60 @@ class ProfileViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    fun loadProfileData(context: Context, user: FirebaseUser) {
+    fun loadProfileData(context: Context) {
         viewModelScope.launch {
             try {
+                println("ProfileViewModel: Starting to load profile data")
                 _isLoading.value = true
                 _error.value = null
                 
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                println("ProfileViewModel: Current user: ${currentUser?.email}")
+                
+                if (currentUser == null) {
+                    _error.value = "No user logged in"
+                    _isLoading.value = false
+                    println("ProfileViewModel: No user logged in")
+                    return@launch
+                }
+                
                 val deviceState = getCurrentDeviceState(context)
+                println("ProfileViewModel: Device state created")
+                
                 val profileData = ProfileData(
-                    user = user,
-                    accountInfo = getAccountInfo(user),
+                    user = currentUser,
+                    accountInfo = getAccountInfo(currentUser),
                     deviceState = deviceState
                 )
                 
+                println("ProfileViewModel: Profile data created, setting value")
                 _profileData.value = profileData
                 
                 // Set up real-time monitoring
                 setupRealTimeMonitoring(context)
+                println("ProfileViewModel: Profile data loaded successfully")
             } catch (e: Exception) {
+                println("ProfileViewModel: Error loading profile data: ${e.message}")
                 _error.value = "Failed to load profile data: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+    
+    fun refreshProfile() {
+        // This will be called from the UI to refresh the profile data
+        // We'll need context to reload, so we'll just update the device state
+        // and trigger a UI refresh
+        viewModelScope.launch {
+            _profileData.value?.let { currentProfile ->
+                // Update device state if we have context
+                // For now, just update the timestamp
+                val updatedDeviceState = currentProfile.deviceState.copy(
+                    lastUpdated = System.currentTimeMillis()
+                )
+                val updatedProfile = currentProfile.copy(deviceState = updatedDeviceState)
+                _profileData.value = updatedProfile
             }
         }
     }
@@ -114,6 +148,15 @@ class ProfileViewModel : ViewModel() {
     }
     
     fun clearError() {
+        _error.value = null
+    }
+    
+    /**
+     * Clear all profile data (useful for logout)
+     */
+    fun clearProfileData() {
+        _profileData.value = null
+        _isLoading.value = false
         _error.value = null
     }
     

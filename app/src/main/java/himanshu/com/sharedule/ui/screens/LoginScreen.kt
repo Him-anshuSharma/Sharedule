@@ -86,22 +86,39 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF667eea),
-                        Color(0xFF764ba2)
-                    )
-                )
-            )
+            .background(Color(0xFFFDF2F8)) // Soft pink background
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
+            // Top banner with Taylor Swift inspired gradient
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFE91E63), // Pink
+                                Color(0xFF9C27B0)  // Purple
+                            )
+                        ),
+                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                    )
+                    .statusBarsPadding()
+            ) {
+                Text(
+                    "Sharedule",
+                    fontSize = 24.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)
+                )
+            }
+            Spacer(Modifier.height(24.dp))
             // App Logo/Icon
             Card(
                 modifier = Modifier
@@ -112,14 +129,21 @@ fun LoginScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFE91E63), // Pink
+                                    Color(0xFF9C27B0)  // Purple
+                                )
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "SD",
                         fontSize = 48.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF667eea)
+                        color = Color.White
                     )
                 }
             }
@@ -131,7 +155,7 @@ fun LoginScreen(
                 text = "Welcome to Sharedule",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = Color(0xFF9C27B0),
                 textAlign = TextAlign.Center
             )
 
@@ -140,7 +164,7 @@ fun LoginScreen(
             Text(
                 text = "Sign in to manage your schedule",
                 fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color(0xFF9C27B0).copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
             )
 

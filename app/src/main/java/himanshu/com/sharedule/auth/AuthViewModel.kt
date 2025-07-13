@@ -55,6 +55,49 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+    
+    /**
+     * Comprehensive logout that clears all local data
+     */
+    fun logout(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                
+                // Clear all local data
+                himanshu.com.sharedule.services.DataClearService.clearAllLocalData(context)
+                
+                // Update auth state
+                _authState.value = AuthState.SignedOut
+                
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Logout failed")
+            }
+        }
+    }
+    
+    /**
+     * Logout with complete data removal (including Firestore)
+     */
+    fun logoutWithDataRemoval(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                
+                // Clear all local data
+                himanshu.com.sharedule.services.DataClearService.clearAllLocalData(context)
+                
+                // Clear user data from Firestore (optional)
+                himanshu.com.sharedule.services.DataClearService.clearUserDataFromFirestore()
+                
+                // Update auth state
+                _authState.value = AuthState.SignedOut
+                
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Logout with data removal failed")
+            }
+        }
+    }
 }
 
 sealed class AuthState {

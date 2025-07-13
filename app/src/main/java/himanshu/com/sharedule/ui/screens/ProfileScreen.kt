@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -33,6 +34,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import himanshu.com.sharedule.ui.viewmodels.ProfileViewModel
 import himanshu.com.sharedule.ui.viewmodels.DeviceState
+import himanshu.com.sharedule.ui.viewmodels.AccountInfo
+import himanshu.com.sharedule.auth.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,105 +44,184 @@ fun ProfileScreen(
     onBackPressed: () -> Unit,
     profileViewModel: ProfileViewModel = viewModel()
 ) {
-    val context = LocalContext.current
     val profileData by profileViewModel.profileData.collectAsState()
     val isLoading by profileViewModel.isLoading.collectAsState()
     val error by profileViewModel.error.collectAsState()
-    
-    // Load profile data when screen is first displayed
+    val context = LocalContext.current
+
+    // Load profile data when the screen is first displayed
     LaunchedEffect(Unit) {
-        // Get current user from Firebase Auth
-        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-        currentUser?.let { user ->
-            profileViewModel.loadProfileData(context, user)
-        }
+        profileViewModel.loadProfileData(context)
+    }
+    
+    // Debug: Log the current state
+    LaunchedEffect(profileData, isLoading, error) {
+        println("ProfileScreen Debug - profileData: ${profileData != null}, isLoading: $isLoading, error: $error")
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF667eea),
-                        Color(0xFF764ba2)
-                    )
-                )
-            )
+            .background(Color(0xFFFDF2F8)) // Soft pink background
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = Color.White
-            )
-        } else {
-            Column(
+        // Top banner with Taylor Swift inspired gradient
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFE91E63), // Pink
+                            Color(0xFF9C27B0)  // Purple
+                        )
+                    ),
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                )
+                .statusBarsPadding()
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header with back button and refresh
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                IconButton(
+                    onClick = onBackPressed,
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    IconButton(
-                        onClick = onBackPressed,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = Color.White.copy(alpha = 0.2f)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                    
-                    Text(
-                        text = "Profile",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
-                    
-                    IconButton(
-                        onClick = { 
-                            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-                            currentUser?.let { user ->
-                                profileViewModel.loadProfileData(context, user)
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = Color.White.copy(alpha = 0.2f)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = Color.White
-                        )
-                    }
                 }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Text(
+                    text = "Profile",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                IconButton(
+                    onClick = { 
+                        println("ProfileScreen: Refresh button clicked")
+                        profileViewModel.loadProfileData(context)
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
 
-                profileData?.let { data ->
+        // Main content with proper padding
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFFE91E63)
+                    )
+                }
+            } else {
+                if (profileData != null) {
+                    val data = profileData!!
+                    
                     // User Profile Section
                     UserProfileSection(data.accountInfo)
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     
                     // Account Information Section
                     AccountInfoSection(data.accountInfo)
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     
                     // Device Status Section
                     DeviceStatusSection(data.deviceState)
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Logout Section
+                    LogoutSection()
+                } else {
+                    // Show a placeholder when no profile data is available
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White.copy(alpha = 0.95f)
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "No Profile Data",
+                                    modifier = Modifier.size(64.dp),
+                                    tint = Color(0xFFE91E63)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No Profile Data Available",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF9C27B0)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Profile information will appear here once loaded",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { profileViewModel.loadProfileData(context) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFE91E63)
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Retry",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Retry Loading")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Error Display
@@ -149,20 +231,65 @@ fun ProfileScreen(
                         profileViewModel.clearError()
                     }
                 }
+                
+                // Debug Section (remove this in production)
+                Spacer(modifier = Modifier.height(20.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFE3F2FD).copy(alpha = 0.8f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Debug Info",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1976D2)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Loading: $isLoading", fontSize = 12.sp, color = Color.Gray)
+                        Text("Has Profile Data: ${profileData != null}", fontSize = 12.sp, color = Color.Gray)
+                        Text("Error: ${error ?: "None"}", fontSize = 12.sp, color = Color.Gray)
+                        Button(
+                            onClick = { 
+                                println("ProfileScreen: Debug button clicked")
+                                profileViewModel.loadProfileData(context)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1976D2)
+                            ),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Force Reload Profile")
+                        }
+                    }
+                }
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
 
+
+
 @Composable
-private fun UserProfileSection(accountInfo: himanshu.com.sharedule.ui.viewmodels.AccountInfo) {
+private fun UserProfileSection(accountInfo: AccountInfo) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Profile Picture
@@ -180,7 +307,14 @@ private fun UserProfileSection(accountInfo: himanshu.com.sharedule.ui.viewmodels
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF667eea)),
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFFE91E63),
+                                    Color(0xFF9C27B0)
+                                )
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -196,10 +330,10 @@ private fun UserProfileSection(accountInfo: himanshu.com.sharedule.ui.viewmodels
             
             // User Name
             Text(
-                text = accountInfo.displayName,
+                text = accountInfo.displayName.ifEmpty { "Unknown User" },
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = Color(0xFF9C27B0),
                 textAlign = TextAlign.Center
             )
             
@@ -207,48 +341,28 @@ private fun UserProfileSection(accountInfo: himanshu.com.sharedule.ui.viewmodels
             
             // Email
             Text(
-                text = accountInfo.email,
+                text = accountInfo.email.ifEmpty { "No email available" },
                 fontSize = 16.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center
             )
-            
-            // Email Verification Status
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (accountInfo.isEmailVerified) Icons.Default.CheckCircle else Icons.Default.Warning,
-                    contentDescription = "Email Verification",
-                    tint = if (accountInfo.isEmailVerified) Color.Green else Color(0xFFFF9800),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (accountInfo.isEmailVerified) "Email Verified" else "Email Not Verified",
-                    fontSize = 12.sp,
-                    color = if (accountInfo.isEmailVerified) Color.Green else Color(0xFFFF9800)
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun AccountInfoSection(accountInfo: himanshu.com.sharedule.ui.viewmodels.AccountInfo) {
+private fun AccountInfoSection(accountInfo: AccountInfo) {
     InfoSection(
         title = "Account Information",
         icon = Icons.Default.AccountCircle
     ) {
-        InfoRow("User ID", accountInfo.uid, isMonospace = true)
-        InfoRow("Phone", accountInfo.phoneNumber)
-        InfoRow("Account Created", accountInfo.accountCreated)
-        InfoRow("Last Sign In", accountInfo.lastSignIn)
+        InfoRow("User ID", accountInfo.uid.ifEmpty { "Unknown" }, isMonospace = true)
+        InfoRow("Email", accountInfo.email.ifEmpty { "No email" })
+        InfoRow("Display Name", accountInfo.displayName.ifEmpty { "Unknown" })
+        InfoRow("Account Created", accountInfo.accountCreated.ifEmpty { "Unknown" })
+        InfoRow("Last Sign In", accountInfo.lastSignIn.ifEmpty { "Unknown" })
     }
 }
-
-
 
 @Composable
 private fun DeviceStatusSection(deviceState: DeviceState) {
@@ -271,14 +385,17 @@ private fun InfoSection(
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.9f)
-        )
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(22.dp)
         ) {
             // Section Header
             Row(
@@ -287,15 +404,15 @@ private fun InfoSection(
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = Color(0xFF667eea),
+                    tint = Color(0xFFE91E63),
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = Color(0xFF9C27B0)
                 )
             }
             
@@ -316,7 +433,7 @@ private fun InfoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -330,7 +447,7 @@ private fun InfoRow(
         Text(
             text = value,
             fontSize = 14.sp,
-            color = Color.Black,
+            color = Color(0xFF9C27B0),
             fontWeight = if (isMonospace) FontWeight.Medium else FontWeight.Normal,
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f)
@@ -346,7 +463,7 @@ private fun StatusRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -362,17 +479,17 @@ private fun StatusRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(10.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isActive) Color.Green else Color.Red
+                        if (isActive) Color(0xFF4CAF50) else Color(0xFFE91E63)
                     )
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = if (isActive) "Active" else "Inactive",
                 fontSize = 14.sp,
-                color = if (isActive) Color.Green else Color.Red,
+                color = if (isActive) Color(0xFF4CAF50) else Color(0xFFE91E63),
                 fontWeight = FontWeight.Medium
             )
         }
@@ -387,8 +504,9 @@ private fun ErrorCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Red.copy(alpha = 0.1f)
-        )
+            containerColor = Color(0xFFE91E63).copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
@@ -399,7 +517,7 @@ private fun ErrorCard(
         ) {
             Text(
                 text = error,
-                color = Color.Red,
+                color = Color(0xFFE91E63),
                 modifier = Modifier.weight(1f),
                 fontSize = 14.sp
             )
@@ -410,7 +528,7 @@ private fun ErrorCard(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Dismiss",
-                    tint = Color.Red,
+                    tint = Color(0xFFE91E63),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -419,8 +537,197 @@ private fun ErrorCard(
 } 
 
 private fun formatDate(timestamp: Long): String {
-    if (timestamp == 0L) return "Unknown"
-    val date = Date(timestamp)
-    val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
-    return formatter.format(date)
+    return try {
+        if (timestamp == 0L) return "Unknown"
+        val date = Date(timestamp)
+        val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
+        formatter.format(date)
+    } catch (e: Exception) {
+        "Unknown"
+    }
+}
+
+@Composable
+private fun LogoutSection() {
+    val context = LocalContext.current
+    val authViewModel: AuthViewModel = viewModel()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDataRemovalDialog by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFF3E0).copy(alpha = 0.95f) // Warm orange background
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp)
+        ) {
+            // Section Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "Logout",
+                    tint = Color(0xFFE91E63),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Account Actions",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF9C27B0)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Logout Button
+            Button(
+                onClick = { showLogoutDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE91E63)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "Logout",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Logout",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Data Removal Button
+            OutlinedButton(
+                onClick = { showDataRemovalDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFFE91E63)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE91E63)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Remove Data",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Logout & Remove All Data",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+    
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Logout",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF9C27B0)
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to logout? This will clear all local data and sign you out of your account.",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        authViewModel.logout(context)
+                        showLogoutDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    )
+                ) {
+                    Text("Logout")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF9C27B0)
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+    
+    // Data Removal Confirmation Dialog
+    if (showDataRemovalDialog) {
+        AlertDialog(
+            onDismissRequest = { showDataRemovalDialog = false },
+            title = {
+                Text(
+                    text = "Remove All Data",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE91E63)
+                )
+            },
+            text = {
+                Text(
+                    text = "This action will permanently delete all your data from both this device and the cloud. This action cannot be undone. Are you absolutely sure?",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        authViewModel.logoutWithDataRemoval(context)
+                        showDataRemovalDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    )
+                ) {
+                    Text("Delete All Data & Logout")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDataRemovalDialog = false },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF9C27B0)
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 } 

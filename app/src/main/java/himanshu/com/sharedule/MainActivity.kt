@@ -7,7 +7,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,10 +27,16 @@ import himanshu.com.sharedule.auth.AuthState
 import himanshu.com.sharedule.auth.AuthViewModel
 import himanshu.com.sharedule.config.AppConfig
 import himanshu.com.sharedule.services.DeviceStatusService
-import himanshu.com.sharedule.ui.screens.HomeScreen
+import himanshu.com.sharedule.ui.screens.DailyProgressScreen
 import himanshu.com.sharedule.ui.screens.LoginScreen
 import himanshu.com.sharedule.ui.screens.ProfileScreen
+import himanshu.com.sharedule.ui.screens.TodayScreen
 import himanshu.com.sharedule.ui.theme.ShareduleTheme
+
+sealed class MainNavItem(val label: String, val icon: ImageVector) {
+    object Today : MainNavItem("Today", Icons.Default.DateRange)
+    object Progress : MainNavItem("Progress", Icons.Default.CheckCircle)
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -34,9 +52,9 @@ class MainActivity : ComponentActivity() {
         
         // Start device state monitoring
         DeviceStatusService.startMonitoring(this)
-        
-        enableEdgeToEdge()
+
         setContent {
+            enableEdgeToEdge()
             ShareduleTheme {
                 ShareduleApp()
             }
@@ -60,6 +78,14 @@ fun ShareduleApp() {
     val authState by authViewModel.authState.collectAsState()
     var showProfile by remember { mutableStateOf(false) }
     
+    // Debug: Track showProfile state changes
+    LaunchedEffect(showProfile) {
+        println("MainActivity: showProfile changed to: $showProfile")
+    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val dailyTaskViewModel = remember { himanshu.com.sharedule.model.DailyTaskViewModel(context) }
+    var selectedTab by remember { mutableStateOf<MainNavItem>(MainNavItem.Today) }
+
     when {
         showProfile && authState is AuthState.SignedIn -> {
             ProfileScreen(
@@ -69,14 +95,34 @@ fun ShareduleApp() {
             )
         }
         authState is AuthState.SignedIn -> {
-            HomeScreen(
-                onSignOut = {
-                    // This will be handled by the AuthViewModel
-                },
-                onProfileClick = {
-                    showProfile = true
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        is MainNavItem.Today -> TodayScreen(viewModel = dailyTaskViewModel, onProfileClick = { 
+                            println("MainActivity: Profile button clicked from TodayScreen")
+                            showProfile = true 
+                        })
+                        is MainNavItem.Progress -> DailyProgressScreen(viewModel = dailyTaskViewModel, onProfileClick = { 
+                            println("MainActivity: Profile button clicked from DailyProgressScreen")
+                            showProfile = true 
+                        })
+                    }
                 }
-            )
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = selectedTab is MainNavItem.Today,
+                        onClick = { selectedTab = MainNavItem.Today },
+                        icon = { Icon(MainNavItem.Today.icon, contentDescription = MainNavItem.Today.label) },
+                        label = { Text(MainNavItem.Today.label) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab is MainNavItem.Progress,
+                        onClick = { selectedTab = MainNavItem.Progress },
+                        icon = { Icon(MainNavItem.Progress.icon, contentDescription = MainNavItem.Progress.label) },
+                        label = { Text(MainNavItem.Progress.label) }
+                    )
+                }
+            }
         }
         authState is AuthState.SignedOut || authState is AuthState.Initial -> {
             LoginScreen(
@@ -86,7 +132,6 @@ fun ShareduleApp() {
             )
         }
         authState is AuthState.Loading -> {
-            // You can add a loading screen here if needed
             LoginScreen(
                 onSignInSuccess = {
                     // Navigation will be handled automatically by the state change
