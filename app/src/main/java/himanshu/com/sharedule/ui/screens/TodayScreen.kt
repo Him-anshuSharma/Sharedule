@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,8 +35,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.AccountCircle
@@ -57,11 +54,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import himanshu.com.sharedule.model.DailyTask
-import himanshu.com.sharedule.model.DailyTaskViewModel
-import himanshu.com.sharedule.model.Recurrence
-import himanshu.com.sharedule.model.RecurrenceType
-import himanshu.com.sharedule.model.SyncState
+import himanshu.com.sharedule.database.entity.DailyTask
+import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
+import himanshu.com.sharedule.database.entity.Recurrence
+import himanshu.com.sharedule.database.entity.RecurrenceType
+import himanshu.com.sharedule.repository.SyncState
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -69,6 +66,8 @@ import java.util.Locale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.draw.shadow
 
 @Composable
 fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
@@ -207,58 +206,9 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(todayTasks) { task ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (task.isDone) Color(0xFFFFFFFF) else Color(0xFFFFF3E0)
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(20.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                        checked = task.isDone,
-                                        onCheckedChange = { checked ->
-                                            viewModel.updateTask(task.copy(isDone = checked))
-                                        },
-                                        colors = CheckboxDefaults.colors(
-                                            checkedColor = Color(0xFF4CAF50),
-                                            uncheckedColor = Color(0xFFE91E63)
-                                        ),
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Spacer(Modifier.width(16.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            text = task.title,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (task.isDone) Color(0xFF388E3C) else Color(0xFFE91E63),
-                                            fontSize = 18.sp
-                                        )
-                                        if (!task.description.isNullOrBlank()) {
-                                            Text(
-                                                text = task.description ?: "",
-                                                color = Color.Gray,
-                                                fontSize = 14.sp,
-                                                modifier = Modifier.padding(top = 4.dp)
-                                            )
-                                        }
-                                    }
-                                    Spacer(Modifier.width(12.dp))
-                                    if (task.isDone) {
-                                        Text("Done", color = Color(0xFF4CAF50), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    } else {
-                                        Text("Pending", color = Color(0xFFE91E63), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
+                            ModernTaskCard(task = task, onCheckedChange = { checked ->
+                                viewModel.updateTask(task.copy(isDone = checked))
+                            })
                         }
                     }
                 }
@@ -278,6 +228,7 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
             AlertDialog(
                 onDismissRequest = { showAddDialog = false },
                 confirmButton = {},
+                modifier = Modifier.width(360.dp),
                 title = { Text("Add Task") },
                 text = {
                     AddTaskSection(onAdd = {
@@ -444,6 +395,7 @@ fun DetailChip(label: String, value: String, color: Color) {
 fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var expectedHours by remember { mutableStateOf("1.0") }
     var showRecurrence by remember { mutableStateOf(false) }
     var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
     var daysOfWeek by remember { mutableStateOf(listOf<Int>()) }
@@ -476,6 +428,13 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
                 focusedBorderColor = Color(0xFF667eea),
                 unfocusedBorderColor = Color.Gray
             )
+        )
+        OutlinedTextField(
+            value = expectedHours,
+            onValueChange = { expectedHours = it.filter { c -> c.isDigit() || c == '.' } },
+            label = { Text("Expected Hours") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(Modifier.height(16.dp))
@@ -641,6 +600,7 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
 
         Button(
             onClick = {
+                val hours = expectedHours.toFloatOrNull() ?: 1.0f
                 val recurrence = when (recurrenceType) {
                     RecurrenceType.NONE -> null
                     RecurrenceType.DAILY -> Recurrence(RecurrenceType.DAILY)
@@ -652,11 +612,13 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
                         title = title,
                         description = description.takeIf { it.isNotBlank() },
                         date = if (recurrenceType == RecurrenceType.NONE) getTodayMidnightMillis() else System.currentTimeMillis(),
-                        recurrence = recurrence
+                        recurrence = recurrence,
+                        expectedHours = hours
                     )
                 )
                 title = ""
                 description = ""
+                expectedHours = "1.0"
                 recurrenceType = RecurrenceType.NONE
                 daysOfWeek = listOf()
                 interval = 1
@@ -669,6 +631,83 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
         }
     }
 }
+
+
+@Composable
+fun ModernTaskCard(task: DailyTask, onCheckedChange: (Boolean) -> Unit = {}, showCheckbox: Boolean = true) {
+    val isDone = task.isDone
+    val accentColor = if (isDone) Color(0xFF4CAF50) else Color(0xFFE91E63)
+    val bgGradient = Brush.linearGradient(
+        colors = if (isDone)
+            listOf(Color(0xFFE8F5E9), Color(0xFFFAFAFA))
+        else
+            listOf(Color(0xFFFFF3E0), Color(0xFFFAFAFA)),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(400f, 400f)
+    )
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .shadow(8.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .background(bgGradient, shape = RoundedCornerShape(20.dp))
+                .padding(0.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+// Accent bar
+            Box(
+                Modifier
+                    .width(8.dp)
+                    .height(60.dp)
+                    .background(accentColor, shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
+            )
+            Spacer(Modifier.width(16.dp))
+// Icon
+            Icon(
+                if (isDone) Icons.Default.CheckCircle else Icons.Default.Lock,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f).padding(16.dp)) {
+                Text(
+                    task.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF222222),
+                )
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        task.description ?: "",
+                        fontSize = 13.sp,
+                        color = Color(0xFF666666),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            if (showCheckbox) {
+                Checkbox(
+                    checked = isDone,
+                    onCheckedChange = onCheckedChange,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Color(0xFF4CAF50),
+                        uncheckedColor = Color(0xFFE91E63)
+                    ),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
 
 private fun getTodayMidnightMillis(): Long {
     val cal = Calendar.getInstance()
