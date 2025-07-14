@@ -1,4 +1,4 @@
-package himanshu.com.sharedule.model
+package himanshu.com.sharedule.repository
 
 import android.content.Context
 import android.util.Log
@@ -16,8 +16,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.QuerySnapshot
+import himanshu.com.sharedule.database.entity.DailyTask
+import himanshu.com.sharedule.database.DatabaseProvider
 
 class DailyTaskRepository(context: Context) {
     private val db = DatabaseProvider.getDatabase(context)
@@ -145,6 +145,23 @@ class DailyTaskRepository(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting task", e)
             throw e
+        }
+    }
+    
+    /**
+     * Fetches all tasks for a given user UID from Firestore.
+     */
+    suspend fun getTasksForUser(uid: String): List<DailyTask> {
+        return try {
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .collection("daily_tasks")
+                .get()
+                .await()
+            snapshot.documents.mapNotNull { it.toObject(DailyTask::class.java) }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
     

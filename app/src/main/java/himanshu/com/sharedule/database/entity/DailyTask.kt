@@ -1,4 +1,4 @@
-package himanshu.com.sharedule.model
+package himanshu.com.sharedule.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -23,7 +23,8 @@ data class DailyTask(
     var isDone: Boolean = false,
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
-    var recurrence: Recurrence? = null // Null = not repeating
+    var recurrence: Recurrence? = null, // Null = not repeating
+    var expectedHours: Float = 1.0f // Expected hours to complete
 )
 
 // Recurrence options for repeating tasks

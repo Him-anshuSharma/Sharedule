@@ -16,10 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import himanshu.com.sharedule.model.DailyTaskViewModel
+import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
+import himanshu.com.sharedule.database.entity.DailyTask
 
 @Composable
 fun DailyProgressScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
@@ -67,7 +67,7 @@ fun DailyProgressScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Uni
     val animatedProgress = animateFloatAsState(targetValue = windowRatio, animationSpec = tween(600))
 
     var showAllDialog by remember { mutableStateOf(false) }
-    var dialogTasks by remember { mutableStateOf<List<himanshu.com.sharedule.model.DailyTask>>(emptyList()) }
+    var dialogTasks by remember { mutableStateOf<List<DailyTask>>(emptyList()) }
     var dialogDay by remember { mutableStateOf(selectedDay) }
 
     val scrollState = rememberScrollState()

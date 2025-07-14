@@ -5,7 +5,7 @@ import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
-import himanshu.com.sharedule.model.DatabaseProvider
+import himanshu.com.sharedule.database.DatabaseProvider
 import himanshu.com.sharedule.ui.viewmodels.ProfileViewModel
 import kotlinx.coroutines.tasks.await
 

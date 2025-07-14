@@ -204,6 +204,25 @@ fun LoginScreen(
                 }
             }
 
+            if (authState is AuthState.SignedIn) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        authViewModel.signOut()
+                        launcher.launch(googleSignInClient.signInIntent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Sign in with another account", color = Color.White, fontWeight = FontWeight.Medium)
+                }
+            }
+
             // Error message
             if (authState is AuthState.Error) {
                 Log.e("Sharedule-Log", "Displaying error: ${(authState as AuthState.Error).message}")

@@ -1,4 +1,7 @@
 package himanshu.com.sharedule.model
 
-class FriendRequest {
-}
+data class FriendRequest (
+    val from : String = "",
+    val status: String = "",
+    val displayName: String=""
+)

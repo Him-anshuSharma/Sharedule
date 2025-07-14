@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import himanshu.com.sharedule.model.Friend
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,15 +29,15 @@ import himanshu.com.sharedule.auth.AuthState
 import himanshu.com.sharedule.auth.AuthViewModel
 import himanshu.com.sharedule.config.AppConfig
 import himanshu.com.sharedule.services.DeviceStatusService
-import himanshu.com.sharedule.ui.screens.DailyProgressScreen
-import himanshu.com.sharedule.ui.screens.LoginScreen
-import himanshu.com.sharedule.ui.screens.ProfileScreen
-import himanshu.com.sharedule.ui.screens.TodayScreen
 import himanshu.com.sharedule.ui.theme.ShareduleTheme
+import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
+import himanshu.com.sharedule.ui.viewmodels.FriendViewModel
+import himanshu.com.sharedule.ui.screens.*
 
 sealed class MainNavItem(val label: String, val icon: ImageVector) {
     object Today : MainNavItem("Today", Icons.Default.DateRange)
     object Progress : MainNavItem("Progress", Icons.Default.CheckCircle)
+    object Friends : MainNavItem("Friends", Icons.Default.Person)
 }
 
 class MainActivity : ComponentActivity() {
@@ -77,13 +79,15 @@ fun ShareduleApp() {
     val authViewModel: AuthViewModel = viewModel()
     val authState by authViewModel.authState.collectAsState()
     var showProfile by remember { mutableStateOf(false) }
+    var selectedFriend: Friend? by remember { mutableStateOf(null) }
     
     // Debug: Track showProfile state changes
     LaunchedEffect(showProfile) {
         println("MainActivity: showProfile changed to: $showProfile")
     }
     val context = androidx.compose.ui.platform.LocalContext.current
-    val dailyTaskViewModel = remember { himanshu.com.sharedule.model.DailyTaskViewModel(context) }
+    val dailyTaskViewModel = remember { DailyTaskViewModel(context) }
+    val friendViewModel = remember { FriendViewModel(context,) }
     var selectedTab by remember { mutableStateOf<MainNavItem>(MainNavItem.Today) }
 
     when {
@@ -93,6 +97,9 @@ fun ShareduleApp() {
                     showProfile = false
                 }
             )
+        }
+        selectedFriend != null && authState is AuthState.SignedIn -> {
+            FriendDetailScreen(friend = selectedFriend!!, onBack = { selectedFriend = null })
         }
         authState is AuthState.SignedIn -> {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -106,6 +113,7 @@ fun ShareduleApp() {
                             println("MainActivity: Profile button clicked from DailyProgressScreen")
                             showProfile = true 
                         })
+                        is MainNavItem.Friends -> FriendsScreen(viewModel = friendViewModel, onFriendClick = { friend -> selectedFriend = friend })
                     }
                 }
                 NavigationBar {
@@ -120,6 +128,12 @@ fun ShareduleApp() {
                         onClick = { selectedTab = MainNavItem.Progress },
                         icon = { Icon(MainNavItem.Progress.icon, contentDescription = MainNavItem.Progress.label) },
                         label = { Text(MainNavItem.Progress.label) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab is MainNavItem.Friends,
+                        onClick = { selectedTab = MainNavItem.Friends },
+                        icon = { Icon(MainNavItem.Friends.icon, contentDescription = MainNavItem.Friends.label) },
+                        label = { Text(MainNavItem.Friends.label) }
                     )
                 }
             }
