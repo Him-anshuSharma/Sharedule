@@ -54,10 +54,7 @@ fun ProfileScreen(
         profileViewModel.loadProfileData(context)
     }
     
-    // Debug: Log the current state
-    LaunchedEffect(profileData, isLoading, error) {
-        println("ProfileScreen Debug - profileData: ${profileData != null}, isLoading: $isLoading, error: $error")
-    }
+
 
     Column(
         modifier = Modifier
@@ -229,45 +226,6 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     ErrorCard(error!!) {
                         profileViewModel.clearError()
-                    }
-                }
-                
-                // Debug Section (remove this in production)
-                Spacer(modifier = Modifier.height(20.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE3F2FD).copy(alpha = 0.8f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Debug Info",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1976D2)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Loading: $isLoading", fontSize = 12.sp, color = Color.Gray)
-                        Text("Has Profile Data: ${profileData != null}", fontSize = 12.sp, color = Color.Gray)
-                        Text("Error: ${error ?: "None"}", fontSize = 12.sp, color = Color.Gray)
-                        Button(
-                            onClick = { 
-                                println("ProfileScreen: Debug button clicked")
-                                profileViewModel.loadProfileData(context)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1976D2)
-                            ),
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Text("Force Reload Profile")
-                        }
                     }
                 }
             }
