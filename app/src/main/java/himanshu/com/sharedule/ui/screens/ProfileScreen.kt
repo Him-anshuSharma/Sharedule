@@ -38,6 +38,10 @@ import himanshu.com.sharedule.ui.viewmodels.AccountInfo
 import himanshu.com.sharedule.auth.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.foundation.clickable
 
 @Composable
 fun ProfileScreen(
@@ -310,11 +314,36 @@ private fun UserProfileSection(accountInfo: AccountInfo) {
 
 @Composable
 private fun AccountInfoSection(accountInfo: AccountInfo) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     InfoSection(
         title = "Account Information",
         icon = Icons.Default.AccountCircle
     ) {
-        InfoRow("User ID", accountInfo.uid.ifEmpty { "Unknown" }, isMonospace = true)
+        // UID row with tap-to-copy
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp)
+                .clickable {
+                    clipboardManager.setText(AnnotatedString(accountInfo.uid))
+                    Toast.makeText(context, "UID copied!", Toast.LENGTH_SHORT).show()
+                },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "User ID",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+            Text(
+                text = accountInfo.uid.ifEmpty { "Unknown" },
+                fontSize = 14.sp,
+                color = Color(0xFF9C27B0),
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
         InfoRow("Email", accountInfo.email.ifEmpty { "No email" })
         InfoRow("Display Name", accountInfo.displayName.ifEmpty { "Unknown" })
         InfoRow("Account Created", accountInfo.accountCreated.ifEmpty { "Unknown" })

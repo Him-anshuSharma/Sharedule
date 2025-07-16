@@ -41,6 +41,7 @@ class FriendViewModel(
             if (snapshot != null) {
                 val friendsList = snapshot.documents.mapNotNull { it.toObject(Friend::class.java) }
                 _friends.value = friendsList
+                android.util.Log.d("Sharedule-Friends", "Updated friends list: ${friendsList.size} friends: ${friendsList.map { it.uid }}")
             }
         }
     }
@@ -63,6 +64,9 @@ class FriendViewModel(
     fun acceptFriendRequest(request: FriendRequest) {
         viewModelScope.launch {
             repository.acceptRequest(request)
+            // Force refresh after accepting
+            observeFriendsRealtime()
+            getFriendRequests()
         }
     }
 

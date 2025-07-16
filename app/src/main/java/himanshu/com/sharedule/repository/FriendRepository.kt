@@ -18,6 +18,7 @@ class FriendRepository(
         private const val FRIENDS = "friends"
         private const val NO_UID_ERROR = "UID is null"
         private const val DEFAULT_STATUS = "pending"
+        private const val STATUS = "status"
     }
 
 
@@ -99,6 +100,7 @@ class FriendRepository(
             val snapshot = db.collection(USERS)
                 .document(currentUid)
                 .collection(FRIEND_REQUESTS)
+                .whereEqualTo(STATUS,DEFAULT_STATUS)
                 .get()
                 .await()
             snapshot.documents.mapNotNull { it.toObject(FriendRequest::class.java) }
