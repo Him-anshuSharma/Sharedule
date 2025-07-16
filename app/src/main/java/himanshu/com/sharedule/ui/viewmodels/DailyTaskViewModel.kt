@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import himanshu.com.sharedule.database.entity.DailyTask
+import himanshu.com.sharedule.database.entity.RecurrenceType
+import himanshu.com.sharedule.database.entity.Recurrence
 import himanshu.com.sharedule.repository.DailyTaskRepository
 import himanshu.com.sharedule.repository.SyncState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
+import kotlinx.coroutines.flow.first
 
 class DailyTaskViewModel(context: Context) : ViewModel() {
     private val repository = DailyTaskRepository(context)
@@ -54,6 +59,9 @@ class DailyTaskViewModel(context: Context) : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val prefs: SharedPreferences = context.getSharedPreferences("recurrence_prefs", Context.MODE_PRIVATE)
+    private val LAST_PROCESSED_KEY = "last_processed_date"
+
     init {
         // Debug: Log when ViewModel is created
         Log.d(TAG, "DailyTaskViewModel initialized")
@@ -77,6 +85,10 @@ class DailyTaskViewModel(context: Context) : ViewModel() {
                     else -> _error.value = null
                 }
             }
+        }
+
+        viewModelScope.launch {
+            ensureRecurringTasksUpToDate()
         }
     }
 
@@ -220,5 +232,54 @@ class DailyTaskViewModel(context: Context) : ViewModel() {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         return cal.timeInMillis
+    }
+
+    suspend fun ensureRecurringTasksUpToDate() {
+        val today = getTodayMidnightMillis()
+        val lastProcessed = prefs.getLong(LAST_PROCESSED_KEY, today)
+        val allTasks = repository.getAllTasks().first()
+        val recurringTasks = allTasks.filter { it.recurrence != null }
+        var date = lastProcessed + 24 * 60 * 60 * 1000L
+        while (date <= today) {
+            for (task in recurringTasks) {
+                val recurrence = task.recurrence ?: continue
+                val shouldCreate = when (recurrence.type) {
+                    RecurrenceType.DAILY -> true
+                    RecurrenceType.WEEKLY -> {
+                        val cal = Calendar.getInstance().apply { timeInMillis = date }
+                        recurrence.daysOfWeek?.contains(cal.get(Calendar.DAY_OF_WEEK)) ?: false
+                    }
+                    RecurrenceType.CUSTOM -> {
+                        val lastTaskDate = allTasks
+                            .filter { t -> t.title == task.title && t.recurrence == task.recurrence }
+                            .maxOfOrNull { t -> t.date } ?: task.date
+                        val intervalMillis = (recurrence.interval ?: 1) * 24 * 60 * 60 * 1000L
+                        ((date - lastTaskDate) % intervalMillis == 0L) && (date > lastTaskDate)
+                    }
+                    else -> false
+                }
+                val exists = allTasks.any { t -> t.title == task.title && t.date == date && t.recurrence == task.recurrence }
+                if (shouldCreate && !exists) {
+                    val newTask = task.copy(
+                        localId = 0L,
+                        firebaseId = null,
+                        date = date,
+                        isDone = false,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    repository.insertTask(newTask)
+                }
+            }
+            date += 24 * 60 * 60 * 1000L
+        }
+        prefs.edit().putLong(LAST_PROCESSED_KEY, today).apply()
+    }
+
+    // Call ensureRecurringTasksUpToDate() after recurrence is set/changed
+    fun onRecurrenceChanged() {
+        viewModelScope.launch {
+            ensureRecurringTasksUpToDate()
+        }
     }
 }

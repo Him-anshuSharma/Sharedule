@@ -1,73 +1,101 @@
 package himanshu.com.sharedule.ui.screens
 
 import android.content.Context
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import himanshu.com.sharedule.R
 import himanshu.com.sharedule.database.entity.DailyTask
-import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
 import himanshu.com.sharedule.database.entity.Recurrence
 import himanshu.com.sharedule.database.entity.RecurrenceType
 import himanshu.com.sharedule.repository.SyncState
+import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.ui.draw.shadow
+import himanshu.com.sharedule.ui.theme.ShareduleGreen
+import himanshu.com.sharedule.ui.theme.SharedulePink
+import himanshu.com.sharedule.ui.theme.ShareduleLightGreen
+import himanshu.com.sharedule.ui.theme.ShareduleLightYellow
+import himanshu.com.sharedule.ui.theme.ShareduleGrey
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.window.Dialog
 
 @Composable
 fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
@@ -83,7 +111,22 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
 
     var showAddDialog by remember { mutableStateOf(false) }
     var pieVisible by remember { mutableStateOf(true) }
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
+    var activeTaskForActions by remember { mutableStateOf<DailyTask?>(null) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val collapseThreshold = 10
+    val expandThreshold = 1
+    var overviewCollapsed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (!overviewCollapsed && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > collapseThreshold)) {
+            overviewCollapsed = true
+        } else if (overviewCollapsed && listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < expandThreshold) {
+            overviewCollapsed = false
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -113,23 +156,31 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                     fontSize = 24.sp,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 48.dp)
                 )
                 Button(
-                    onClick = { 
+                    onClick = {
                         println("TodayScreen: Profile button clicked")
                         onProfileClick()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.15f)),
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 40.dp)
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 40.dp)
                 ) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = Color.White)
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = "Profile",
+                        tint = Color.White
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Profile", color = Color.White)
                 }
             }
             Spacer(Modifier.height(8.dp))
-            
+
             // Main content with proper padding
             Column(
                 modifier = Modifier
@@ -137,55 +188,126 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                     .padding(horizontal = 16.dp)
             ) {
                 // Sync status indicator
-                SyncStatusCard(syncState = syncState, onSyncFromFirebase = { viewModel.syncFromFirebase() })
-                
-                AnimatedVisibility(visible = pieVisible) {
-                    Column {
-                        Text(
-                            "Today's Overview", 
-                            fontSize = 24.sp, 
-                            color = Color(0xFFE91E63), 
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                SyncStatusCard(
+                    syncState = syncState,
+                    onSyncFromFirebase = { viewModel.syncFromFirebase() })
+
+                AnimatedContent(targetState = overviewCollapsed, label = "overviewCollapseAnim") { collapsed ->
+                    if (!collapsed && pieVisible) {
+                        Column {
+                            Text(
+                                "Today's Overview",
+                                fontSize = 24.sp,
+                                color = Color(0xFFE91E63),
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 16.dp)
+                            )
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                PieChart(
+                                    completedPercent = completedPercent,
+                                    pendingPercent = pendingPercent,
+                                    completed = completed,
+                                    pending = pending
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                DetailChip(
+                                    label = "Total",
+                                    value = total.toString(),
+                                    color = Color(0xFFE91E63)
+                                )
+                                DetailChip(
+                                    label = "Completed",
+                                    value = completed.toString(),
+                                    color = Color(0xFF4CAF50)
+                                )
+                                DetailChip(
+                                    label = "Pending",
+                                    value = pending.toString(),
+                                    color = Color(0xFFFF9800)
+                                )
+                            }
+                            Spacer(Modifier.height(24.dp))
+                        }
+                    } else if (collapsed && pieVisible) {
+                        // Compact row layout
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             PieChart(
                                 completedPercent = completedPercent,
                                 pendingPercent = pendingPercent,
                                 completed = completed,
-                                pending = pending
+                                pending = pending,
+                                modifier = Modifier.size(64.dp),
+                                textSize = 14.sp,
+                                showLabel = false
                             )
+                            Spacer(Modifier.width(12.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                DotNumberChip(
+                                    value = total.toString(),
+                                    color = Color(0xFFE91E63)
+                                )
+                                DotNumberChip(
+                                    value = completed.toString(),
+                                    color = Color(0xFF4CAF50)
+                                )
+                                DotNumberChip(
+                                    value = pending.toString(),
+                                    color = Color(0xFFFF9800)
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(16.dp))
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            DetailChip(label = "Total", value = total.toString(), color = Color(0xFFE91E63))
-                            DetailChip(label = "Completed", value = completed.toString(), color = Color(0xFF4CAF50))
-                            DetailChip(label = "Pending", value = pending.toString(), color = Color(0xFFFF9800))
-                        }
-                        Spacer(Modifier.height(24.dp))
                     }
                 }
+
                 Text(
-                    "Today's Tasks", 
-                    fontSize = 20.sp, 
-                    color = Color(0xFF9C27B0), 
+                    "Today's Tasks",
+                    fontSize = 20.sp,
+                    color = Color(0xFF9C27B0),
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
                 if (todayTasks.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp), contentAlignment = Alignment.Center
+                    ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = "No tasks", tint = Color(0xFFE1BEE7), modifier = Modifier.size(48.dp))
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "No tasks",
+                                tint = Color(0xFFE1BEE7),
+                                modifier = Modifier.size(48.dp)
+                            )
                             Spacer(Modifier.width(8.dp))
-                            Text("No tasks for today!", color = Color(0xFF9E9E9E), fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
+                            Text(
+                                "No tasks for today!",
+                                color = Color(0xFF9E9E9E),
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
                             Spacer(Modifier.height(16.dp))
                             // Debug button to add sample tasks
                             Button(
                                 onClick = { viewModel.addSampleTasks() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xFFE91E63
+                                    )
+                                ),
                                 modifier = Modifier.padding(horizontal = 32.dp)
                             ) {
                                 Text("Add Sample Tasks", color = Color.White)
@@ -194,6 +316,7 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                     }
                 } else {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
@@ -203,12 +326,26 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                                     if (dragAmount > 10) pieVisible = true
                                 }
                             },
-                        contentPadding = PaddingValues(bottom = 80.dp)
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 60.dp)
                     ) {
-                        items(todayTasks) { task ->
-                            ModernTaskCard(task = task, onCheckedChange = { checked ->
-                                viewModel.updateTask(task.copy(isDone = checked))
-                            })
+                        items(todayTasks.size) { index ->
+                            ModernTaskCard(
+                                task = todayTasks[index],
+                                onCheckedChange = { checked ->
+                                    viewModel.updateTask(todayTasks[index].copy(isDone = checked, updatedAt = System.currentTimeMillis()))
+                                },
+                                onTaskUpdate = { updatedTask ->
+                                    viewModel.updateTask(updatedTask.copy(updatedAt = System.currentTimeMillis()))
+                                },
+                                onTaskDelete = { taskToDelete ->
+                                    viewModel.deleteTask(taskToDelete)
+                                },
+                                onLongPress = { activeTaskForActions = todayTasks[index] }
+                            )
+                        }
+                        // Add an invisible spacer at the end to ensure enough scrollable content
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }
@@ -258,6 +395,98 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                 }
             }
         }
+        if (activeTaskForActions != null) {
+            Dialog(onDismissRequest = { activeTaskForActions = null }) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    shadowElevation = 8.dp,
+                    color = Color.White,
+                    modifier = Modifier
+                        .widthIn(min = 180.dp, max = 240.dp)
+                        .padding(0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            showEditDialog = true
+                        }) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_manage),
+                                contentDescription = "Edit",
+                                tint = SharedulePink,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            showDeleteDialog = true
+                        }) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_delete),
+                                contentDescription = "Delete",
+                                tint = SharedulePink,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = { activeTaskForActions = null }) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
+                                contentDescription = "Cancel",
+                                tint = SharedulePink,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            // Show Edit dialog if requested
+            if (showEditDialog) {
+                EditTaskDialog(
+                    initialTask = activeTaskForActions!!,
+                    onDismiss = {
+                        showEditDialog = false
+                        activeTaskForActions = null
+                    },
+                    onSave = { updatedTask ->
+                        viewModel.updateTask(updatedTask.copy(updatedAt = System.currentTimeMillis()))
+                        showEditDialog = false
+                        activeTaskForActions = null
+                    }
+                )
+            }
+            // Show Delete confirmation dialog if requested
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showDeleteDialog = false
+                        activeTaskForActions = null
+                    },
+                    title = { Text("Delete Task") },
+                    text = { Text("Are you sure you want to delete this task?") },
+                    confirmButton = {
+                        Button(onClick = {
+                            viewModel.deleteTask(activeTaskForActions!!)
+                            showDeleteDialog = false
+                            activeTaskForActions = null
+                        }, colors = ButtonDefaults.buttonColors(containerColor = SharedulePink)) {
+                            Text("Delete", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            activeTaskForActions = null
+                        }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -286,7 +515,10 @@ fun SyncStatusCard(syncState: SyncState, onSyncFromFirebase: () -> Unit) {
                         .background(
                             when (syncState) {
                                 is SyncState.Idle -> Color.Gray
-                                is SyncState.SyncingToFirebase, is SyncState.SyncingFromFirebase -> Color(0xFFFF9800)
+                                is SyncState.SyncingToFirebase, is SyncState.SyncingFromFirebase -> Color(
+                                    0xFFFF9800
+                                )
+
                                 is SyncState.Synced -> Color(0xFF4CAF50)
                                 is SyncState.Error -> Color(0xFFE91E63)
                             },
@@ -305,13 +537,16 @@ fun SyncStatusCard(syncState: SyncState, onSyncFromFirebase: () -> Unit) {
                     fontSize = 12.sp,
                     color = when (syncState) {
                         is SyncState.Idle -> Color.Gray
-                        is SyncState.SyncingToFirebase, is SyncState.SyncingFromFirebase -> Color(0xFFFF9800)
+                        is SyncState.SyncingToFirebase, is SyncState.SyncingFromFirebase -> Color(
+                            0xFFFF9800
+                        )
+
                         is SyncState.Synced -> Color(0xFF4CAF50)
                         is SyncState.Error -> Color(0xFFE91E63)
                     }
                 )
             }
-            
+
             // Sync button
             TextButton(
                 onClick = onSyncFromFirebase,
@@ -328,9 +563,17 @@ fun SyncStatusCard(syncState: SyncState, onSyncFromFirebase: () -> Unit) {
 }
 
 @Composable
-fun PieChart(completedPercent: Float, pendingPercent: Float, completed: Int, pending: Int) {
-    Box(Modifier.size(180.dp), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(160.dp)) {
+fun PieChart(
+    completedPercent: Float,
+    pendingPercent: Float,
+    completed: Int,
+    pending: Int,
+    modifier: Modifier = Modifier,
+    textSize: TextUnit = 26.sp,
+    showLabel: Boolean = true
+) {
+    Box(modifier.then(Modifier.size(180.dp)), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(if (modifier == Modifier) 160.dp else 100.dp)) {
             val sweepCompleted = completedPercent * 360f
             val sweepPending = pendingPercent * 360f
             drawArc(
@@ -346,23 +589,24 @@ fun PieChart(completedPercent: Float, pendingPercent: Float, completed: Int, pen
                 useCenter = true
             )
         }
-        // Beautiful centered text with better styling
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                "$completed/$pending", 
-                fontSize = 26.sp, 
-                fontWeight = FontWeight.Bold, 
+                "$completed/$pending",
+                fontSize = textSize,
+                fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            Text(
-                "Done/Pending", 
-                fontSize = 14.sp, 
-                color = Color.White.copy(alpha = 0.8f),
-                fontWeight = FontWeight.Medium
-            )
+            if (showLabel) {
+                Text(
+                    "Done/Pending",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -391,23 +635,119 @@ fun DetailChip(label: String, value: String, color: Color) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun RecurrenceTypeChipRow(
+    selectedType: RecurrenceType,
+    onTypeSelected: (RecurrenceType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val types = listOf(
+        RecurrenceType.NONE to "None",
+        RecurrenceType.DAILY to "Daily",
+        RecurrenceType.WEEKLY to "Weekly"
+    )
+    FlowRow(
+        modifier = modifier
+    ) {
+        types.forEach { (type, label) ->
+            val selected = selectedType == type
+            Surface(
+                shape = RoundedCornerShape(corner = CornerSize(50)),
+                color = if (selected) SharedulePink else Color(0xFFF3E5F5),
+                border = if (selected) null else BorderStroke(1.dp, SharedulePink),
+                modifier = Modifier
+                    .padding(end = 8.dp, bottom = 8.dp)
+                    .clickable { onTypeSelected(type) }
+            ) {
+                Text(
+                    label,
+                    color = if (selected) Color.White else SharedulePink,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun WeeklyDaysDialog(
+    initialDays: List<Int>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<Int>) -> Unit
+) {
+    val daysOfWeek = listOf(
+        Calendar.MONDAY to "Mon",
+        Calendar.TUESDAY to "Tue",
+        Calendar.WEDNESDAY to "Wed",
+        Calendar.THURSDAY to "Thu",
+        Calendar.FRIDAY to "Fri",
+        Calendar.SATURDAY to "Sat",
+        Calendar.SUNDAY to "Sun"
+    )
+    var selectedDays by remember { mutableStateOf(initialDays) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Days of the Week") },
+        text = {
+            FlowRow {
+                daysOfWeek.forEach { (day, label) ->
+                    val selected = selectedDays.contains(day)
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (selected) SharedulePink else Color(0xFFF3E5F5),
+                        border = if (selected) null else BorderStroke(1.dp, SharedulePink),
+                        modifier = Modifier
+                            .padding(end = 8.dp, bottom = 8.dp)
+                            .clickable {
+                                selectedDays = if (selected) selectedDays - day else selectedDays + day
+                            }
+                    ) {
+                        Text(
+                            label,
+                            color = if (selected) Color.White else SharedulePink,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(selectedDays) }, colors = ButtonDefaults.buttonColors(containerColor = SharedulePink)) {
+                Text("OK", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
 @Composable
 fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var expectedHours by remember { mutableStateOf("1.0") }
     var showRecurrence by remember { mutableStateOf(false) }
     var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
     var daysOfWeek by remember { mutableStateOf(listOf<Int>()) }
     var interval by remember { mutableStateOf(1) }
     var date by remember { mutableStateOf(getTodayMidnightMillis()) }
+    var showWeeklyDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
-        Text("Add New Task", fontSize = 20.sp, color = Color(0xFF667eea), modifier = Modifier.padding(bottom = 16.dp))
+        Text(
+            "Add New Task",
+            fontSize = 20.sp,
+            color = Color(0xFF667eea),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
@@ -429,13 +769,6 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
                 unfocusedBorderColor = Color.Gray
             )
         )
-        OutlinedTextField(
-            value = expectedHours,
-            onValueChange = { expectedHours = it.filter { c -> c.isDigit() || c == '.' } },
-            label = { Text("Expected Hours") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
 
         Spacer(Modifier.height(16.dp))
 
@@ -446,7 +779,8 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
                 value = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date(date)),
                 onValueChange = {
                     try {
-                        date = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(it)?.time ?: System.currentTimeMillis()
+                        date = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(it)?.time
+                            ?: System.currentTimeMillis()
                     } catch (e: Exception) {
                         // Ignore invalid date input
                     }
@@ -470,155 +804,59 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
             Column(Modifier.padding(vertical = 8.dp)) {
                 Text("Recurrence:", fontSize = 16.sp, color = Color.Gray)
                 Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = recurrenceType == RecurrenceType.NONE,
-                        onClick = { recurrenceType = RecurrenceType.NONE }
+                RecurrenceTypeChipRow(
+                    selectedType = recurrenceType,
+                    onTypeSelected = {
+                        recurrenceType = it
+                        if (it == RecurrenceType.WEEKLY) showWeeklyDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (recurrenceType == RecurrenceType.WEEKLY) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        if (daysOfWeek.isEmpty()) "No days selected" else daysOfWeek.sorted().joinToString(", ") { dayIntToLabel(it) },
+                        color = SharedulePink,
+                        fontSize = 14.sp
                     )
-                    Text("None", fontSize = 16.sp)
-                    Spacer(Modifier.width(20.dp))
-                    RadioButton(
-                        selected = recurrenceType == RecurrenceType.DAILY,
-                        onClick = { recurrenceType = RecurrenceType.DAILY }
-                    )
-                    Text("Daily", fontSize = 16.sp)
-                    Spacer(Modifier.width(20.dp))
-                    RadioButton(
-                        selected = recurrenceType == RecurrenceType.WEEKLY,
-                        onClick = { recurrenceType = RecurrenceType.WEEKLY }
-                    )
-                    Text("Weekly", fontSize = 16.sp)
-                    Spacer(Modifier.width(20.dp))
-                    RadioButton(
-                        selected = recurrenceType == RecurrenceType.CUSTOM,
-                        onClick = { recurrenceType = RecurrenceType.CUSTOM }
-                    )
-                    Text("Custom", fontSize = 16.sp)
-                }
-
-                when (recurrenceType) {
-                    RecurrenceType.NONE -> {
-                        // No recurrence fields
-                    }
-                    RecurrenceType.DAILY -> {
-                        // No recurrence fields
-                    }
-                    RecurrenceType.WEEKLY -> {
-                        Text("Days of the week:", fontSize = 16.sp, color = Color.Gray)
-                        Spacer(Modifier.height(8.dp))
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.MONDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.MONDAY
-                                    else daysOfWeek -= Calendar.MONDAY
-                                }
-                            )
-                            Text("Mon", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.TUESDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.TUESDAY
-                                    else daysOfWeek -= Calendar.TUESDAY
-                                }
-                            )
-                            Text("Tue", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.WEDNESDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.WEDNESDAY
-                                    else daysOfWeek -= Calendar.WEDNESDAY
-                                }
-                            )
-                            Text("Wed", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.THURSDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.THURSDAY
-                                    else daysOfWeek -= Calendar.THURSDAY
-                                }
-                            )
-                            Text("Thu", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.FRIDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.FRIDAY
-                                    else daysOfWeek -= Calendar.FRIDAY
-                                }
-                            )
-                            Text("Fri", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.SATURDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.SATURDAY
-                                    else daysOfWeek -= Calendar.SATURDAY
-                                }
-                            )
-                            Text("Sat", fontSize = 16.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Checkbox(
-                                checked = daysOfWeek.contains(Calendar.SUNDAY),
-                                onCheckedChange = { checked ->
-                                    if (checked) daysOfWeek += Calendar.SUNDAY
-                                    else daysOfWeek -= Calendar.SUNDAY
-                                }
-                            )
-                            Text("Sun", fontSize = 16.sp)
-                        }
-                    }
-                    RecurrenceType.CUSTOM -> {
-                        Text("Interval (days):", fontSize = 16.sp, color = Color.Gray)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = interval.toString(),
-                            onValueChange = {
-                                try {
-                                    interval = it.toInt()
-                                } catch (e: NumberFormatException) {
-                                    // Ignore invalid input
-                                }
-                            },
-                            label = { Text("Interval") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF667eea),
-                                unfocusedBorderColor = Color.Gray
-                            )
-                        )
+                    Button(onClick = { showWeeklyDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = SharedulePink)) {
+                        Text("Choose Days", color = Color.White)
                     }
                 }
             }
         }
-
+        if (showWeeklyDialog) {
+            WeeklyDaysDialog(
+                initialDays = daysOfWeek,
+                onDismiss = { showWeeklyDialog = false },
+                onConfirm = {
+                    daysOfWeek = it
+                    showWeeklyDialog = false
+                }
+            )
+        }
         Spacer(Modifier.height(16.dp))
-
         Button(
             onClick = {
-                val hours = expectedHours.toFloatOrNull() ?: 1.0f
                 val recurrence = when (recurrenceType) {
                     RecurrenceType.NONE -> null
                     RecurrenceType.DAILY -> Recurrence(RecurrenceType.DAILY)
-                    RecurrenceType.WEEKLY -> Recurrence(RecurrenceType.WEEKLY, daysOfWeek = daysOfWeek)
-                    RecurrenceType.CUSTOM -> Recurrence(RecurrenceType.CUSTOM, interval = interval)
+                    RecurrenceType.WEEKLY -> Recurrence(
+                        RecurrenceType.WEEKLY,
+                        daysOfWeek = daysOfWeek
+                    )
+                    RecurrenceType.CUSTOM -> null // Not supported in chip UI
                 }
                 onAdd(
                     DailyTask(
                         title = title,
                         description = description.takeIf { it.isNotBlank() },
                         date = if (recurrenceType == RecurrenceType.NONE) getTodayMidnightMillis() else System.currentTimeMillis(),
-                        recurrence = recurrence,
-                        expectedHours = hours
+                        recurrence = recurrence
                     )
                 )
                 title = ""
                 description = ""
-                expectedHours = "1.0"
                 recurrenceType = RecurrenceType.NONE
                 daysOfWeek = listOf()
                 interval = 1
@@ -632,82 +870,278 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
     }
 }
 
+private fun dayIntToLabel(day: Int): String = when (day) {
+    Calendar.MONDAY -> "Mon"
+    Calendar.TUESDAY -> "Tue"
+    Calendar.WEDNESDAY -> "Wed"
+    Calendar.THURSDAY -> "Thu"
+    Calendar.FRIDAY -> "Fri"
+    Calendar.SATURDAY -> "Sat"
+    Calendar.SUNDAY -> "Sun"
+    else -> "?"
+}
 
 @Composable
-fun ModernTaskCard(task: DailyTask, onCheckedChange: (Boolean) -> Unit = {}, showCheckbox: Boolean = true) {
+fun ModernTaskCard(
+    task: DailyTask,
+    onCheckedChange: (Boolean) -> Unit = {},
+    onTaskUpdate: ((DailyTask) -> Unit)? = null,
+    onTaskDelete: ((DailyTask) -> Unit)? = null,
+    showCheckbox: Boolean = true,
+    onLongPress: (() -> Unit)? = null
+) {
     val isDone = task.isDone
-    val accentColor = if (isDone) Color(0xFF4CAF50) else Color(0xFFE91E63)
-    val bgGradient = Brush.linearGradient(
-        colors = if (isDone)
-            listOf(Color(0xFFE8F5E9), Color(0xFFFAFAFA))
-        else
-            listOf(Color(0xFFFFF3E0), Color(0xFFFAFAFA)),
-        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(400f, 400f)
-    )
+    val cardBg = if (isDone) ShareduleLightGreen else ShareduleLightYellow
+    val checkboxColor = if (isDone) ShareduleGreen else SharedulePink
+    val titleColor = if (isDone) ShareduleGreen else SharedulePink
+    val statusText = if (isDone) "Done" else "Pending"
+    val statusColor = if (isDone) ShareduleGreen else SharedulePink
+    val detailsColor = ShareduleGrey
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var showActions by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp)
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            .padding(vertical = 8.dp, horizontal = 8.dp)
+            .shadow(6.dp, RoundedCornerShape(18.dp))
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress?.invoke() },
+                    onPress = {
+                        val press = tryAwaitRelease()
+                        if (!press) showActions = false
+                    }
+                )
+            },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
-                .background(bgGradient, shape = RoundedCornerShape(20.dp))
-                .padding(0.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-// Accent bar
-            Box(
-                Modifier
-                    .width(8.dp)
-                    .height(60.dp)
-                    .background(accentColor, shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
-            )
-            Spacer(Modifier.width(16.dp))
-// Icon
-            Icon(
-                if (isDone) Icons.Default.CheckCircle else Icons.Default.Lock,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f).padding(16.dp)) {
-                Text(
-                    task.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF222222),
-                )
-                if (!task.description.isNullOrBlank()) {
-                    Text(
-                        task.description ?: "",
-                        fontSize = 13.sp,
-                        color = Color(0xFF666666),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.width(16.dp))
+            // Left: Checkbox
             if (showCheckbox) {
                 Checkbox(
                     checked = isDone,
                     onCheckedChange = onCheckedChange,
                     colors = CheckboxDefaults.colors(
-                        checkedColor = Color(0xFF4CAF50),
-                        uncheckedColor = Color(0xFFE91E63)
+                        checkedColor = ShareduleGreen,
+                        uncheckedColor = SharedulePink,
+                        checkmarkColor = Color.White
                     ),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            // Center: Title and details (weight 1, left aligned)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = task.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = titleColor,
+                    maxLines = 1,
+                )
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        text = task.description ?: "",
+                        fontSize = 13.sp,
+                        color = detailsColor,
+                        modifier = Modifier.padding(top = 2.dp),
+                        maxLines = 1
+                    )
+                }
+            }
+            // Right: Status text or actions
+            if (!isDone) {
+                if (showActions) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showSettingsDialog = true }) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_manage),
+                                contentDescription = "Settings",
+                                tint = SharedulePink,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_delete),
+                                contentDescription = "Delete",
+                                tint = SharedulePink,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = statusText,
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+            } else {
+                Text(
+                    text = statusText,
+                    color = statusColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
         }
     }
+    // Delete dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Task") },
+            text = { Text("Are you sure you want to delete this task?") },
+            confirmButton = {
+                Button(onClick = {
+                    showDeleteDialog = false
+                    onTaskDelete?.invoke(task)
+                }, colors = ButtonDefaults.buttonColors(containerColor = SharedulePink)) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    // Settings dialog
+    if (showSettingsDialog) {
+        EditTaskDialog(
+            initialTask = task,
+            onDismiss = { showSettingsDialog = false },
+            onSave = { updatedTask ->
+                showSettingsDialog = false
+                onTaskUpdate?.invoke(updatedTask)
+            }
+        )
+    }
 }
 
+@Composable
+fun EditTaskDialog(
+    initialTask: DailyTask,
+    onDismiss: () -> Unit,
+    onSave: (DailyTask) -> Unit
+) {
+    var title by remember { mutableStateOf(initialTask.title) }
+    var description by remember { mutableStateOf(initialTask.description ?: "") }
+    var recurrenceType by remember { mutableStateOf(initialTask.recurrence?.type ?: RecurrenceType.NONE) }
+    var daysOfWeek by remember { mutableStateOf(initialTask.recurrence?.daysOfWeek ?: listOf<Int>()) }
+    var showWeeklyDialog by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Task") },
+        text = {
+            Column(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SharedulePink,
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SharedulePink,
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+                Spacer(Modifier.height(12.dp))
+                Text("Recurrence:", fontSize = 16.sp, color = Color.Gray)
+                Spacer(Modifier.height(12.dp))
+                RecurrenceTypeChipRow(
+                    selectedType = recurrenceType,
+                    onTypeSelected = {
+                        recurrenceType = it
+                        if (it == RecurrenceType.WEEKLY) showWeeklyDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (recurrenceType == RecurrenceType.WEEKLY) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        if (daysOfWeek.isEmpty()) "No days selected" else daysOfWeek.sorted().joinToString(", ") { dayIntToLabel(it) },
+                        color = SharedulePink,
+                        fontSize = 14.sp
+                    )
+                    Button(onClick = { showWeeklyDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = SharedulePink)) {
+                        Text("Choose Days", color = Color.White)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val recurrence = when (recurrenceType) {
+                        RecurrenceType.NONE -> null
+                        RecurrenceType.DAILY -> Recurrence(RecurrenceType.DAILY)
+                        RecurrenceType.WEEKLY -> Recurrence(RecurrenceType.WEEKLY, daysOfWeek = daysOfWeek)
+                        RecurrenceType.CUSTOM -> null // Not supported in chip UI
+                    }
+                    onSave(
+                        initialTask.copy(
+                            title = title,
+                            description = description.takeIf { it.isNotBlank() },
+                            recurrence = recurrence
+                        )
+                    )
+                },
+                enabled = title.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = SharedulePink),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        modifier = Modifier.width(360.dp)
+    )
+    if (showWeeklyDialog) {
+        WeeklyDaysDialog(
+            initialDays = daysOfWeek,
+            onDismiss = { showWeeklyDialog = false },
+            onConfirm = {
+                daysOfWeek = it
+                showWeeklyDialog = false
+            }
+        )
+    }
+}
 
 private fun getTodayMidnightMillis(): Long {
     val cal = Calendar.getInstance()
@@ -716,4 +1150,26 @@ private fun getTodayMidnightMillis(): Long {
     cal.set(Calendar.SECOND, 0)
     cal.set(Calendar.MILLISECOND, 0)
     return cal.timeInMillis
+}
+
+@Composable
+fun DotNumberChip(value: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.1f),
+        modifier = Modifier.padding(horizontal = 4.dp)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .size(10.dp)
+                    .background(color, RoundedCornerShape(50))
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
 } 
