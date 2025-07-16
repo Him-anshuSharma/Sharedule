@@ -147,6 +147,7 @@ class DataClearService {
         suspend fun clearUserDataFromFirestore() {
             try {
                 val user = FirebaseAuth.getInstance().currentUser
+
                 if (user == null) {
                     Log.w(TAG, "No authenticated user, skipping Firestore data clearing")
                     return
@@ -163,11 +164,11 @@ class DataClearService {
                 
                 val tasksSnapshot = tasksCollection.get().await()
                 val batch = firestore.batch()
-                
+
                 tasksSnapshot.documents.forEach { doc ->
                     batch.delete(doc.reference)
                 }
-                
+
                 batch.commit().await()
                 Log.d(TAG, "User data cleared from Firestore successfully")
             } catch (e: Exception) {

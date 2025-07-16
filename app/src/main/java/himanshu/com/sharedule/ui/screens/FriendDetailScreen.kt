@@ -1,8 +1,10 @@
 package himanshu.com.sharedule.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -26,6 +28,19 @@ import himanshu.com.sharedule.repository.DailyTaskRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import himanshu.com.sharedule.ui.screens.ModernTaskCard
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun FriendDetailScreen(friend: Friend, onBack: () -> Unit) {
@@ -136,6 +151,42 @@ fun FriendDetailScreen(friend: Friend, onBack: () -> Unit) {
                 CircularProgressIndicator(color = Color(0xFF9C27B0))
             }
         } else {
+            // --- Progress Bar Graph (copied/adapted from DailyProgressScreen) ---
+            val grouped = tasks.groupBy { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.date)) }
+            val todayMidnight = today
+            val barDays = (0..6).map { offset -> todayMidnight - offset * 24 * 60 * 60 * 1000L }.reversed()
+            val filteredBarDays = barDays.filter { it <= todayMidnight }
+            val barLabels = filteredBarDays.map { SimpleDateFormat("EEE", Locale.getDefault()).format(Date(it)) }
+            val barData = filteredBarDays.map { dayMillis ->
+                val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(dayMillis))
+                grouped[dayKey]?.count { it.isDone } ?: 0
+            }
+            val barTaskCounts = filteredBarDays.map { dayMillis ->
+                val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(dayMillis))
+                grouped[dayKey]?.size ?: 0
+            }
+            val maxBarValue = (barData.maxOrNull() ?: 1).coerceAtLeast(1)
+            Column(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    barLabels.forEachIndexed { index, label ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(
+                                Modifier
+                                    .width(30.dp)
+                                    .height((barData[index].toFloat() / maxBarValue * 100).coerceAtLeast(10f).dp)
+                                    .background(
+                                        if (barData[index] > 0) Color(0xFFE91E63) else Color(0xFFE1BEE7),
+                                        androidx.compose.foundation.shape.RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                                    )
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(label, fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+
+            // --- Friend's Tasks using ModernTaskCard ---
             val showTasks = if (selectedTab == 0) todayTasks else overallTasks
             if (showTasks.isEmpty()) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -145,11 +196,14 @@ fun FriendDetailScreen(friend: Friend, onBack: () -> Unit) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 0.dp)
                         .weight(1f, fill = false)
                 ) {
-                    items(showTasks.size) { index ->
-                        FriendTaskItem(showTasks[index])
+                    items(showTasks) { task ->
+                        ModernTaskCard(
+                            task = task,
+                            showCheckbox = false
+                        )
                     }
                 }
             }
@@ -170,86 +224,5 @@ private fun TabButton(selected: Boolean, text: String, onClick: () -> Unit) {
             .padding(horizontal = 4.dp)
     ) {
         Text(text, color = if (selected) Color.White else Color.Black)
-    }
-}
-
-@Composable
-private fun FriendTaskItem(task: DailyTask) {
-    val isDone = task.isDone
-    if (task.recurrence == null) "One Time" else task.recurrence!!.type.toString()
-    val accentColor = if (isDone) Color(0xFF4CAF50) else Color(0xFFE91E63)
-    val bgGradient = Brush.linearGradient(
-        colors = if (isDone)
-            listOf(Color(0xFFE8F5E9), Color(0xFFFAFAFA))
-        else
-            listOf(Color(0xFFFFF3E0), Color(0xFFFAFAFA)),
-        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(400f, 400f)
-    )
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp)
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .background(bgGradient, shape = RoundedCornerShape(20.dp))
-                .padding(0.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Accent bar
-            Box(
-                Modifier
-                    .width(8.dp)
-                    .height(80.dp)
-                    .background(accentColor, shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
-            )
-            Spacer(Modifier.width(16.dp))
-            // Icon
-            Icon(
-                if (isDone) Icons.Default.CheckCircle else Icons.Default.Lock,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f).padding(16.dp)) {
-                Text(
-                    task.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF222222),
-                )
-                if (!task.description.isNullOrBlank()) {
-                    Text(
-                        task.description ?: "",
-                        fontSize = 13.sp,
-                        color = Color(0xFF666666),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (isDone) "Done" else "Pending",
-                        color = if (isDone) Color(0xFF4CAF50) else Color(0xFFE91E63),
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "${task.expectedHours}h",
-                        fontSize = 12.sp,
-                        color = Color(0xFF9C27B0),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-        }
     }
 }

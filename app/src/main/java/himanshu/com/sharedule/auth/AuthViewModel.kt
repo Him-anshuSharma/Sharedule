@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import himanshu.com.sharedule.services.DataClearService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -83,12 +84,14 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
+
+
+                // Clear user data from Firestore (optional)
+                DataClearService.clearUserDataFromFirestore()
                 
                 // Clear all local data
-                himanshu.com.sharedule.services.DataClearService.clearAllLocalData(context)
-                
-                // Clear user data from Firestore (optional)
-                himanshu.com.sharedule.services.DataClearService.clearUserDataFromFirestore()
+                DataClearService.clearAllLocalData(context)
+
                 
                 // Update auth state
                 _authState.value = AuthState.SignedOut
