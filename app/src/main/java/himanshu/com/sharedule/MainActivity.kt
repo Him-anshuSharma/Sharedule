@@ -33,6 +33,7 @@ import himanshu.com.sharedule.ui.theme.ShareduleTheme
 import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
 import himanshu.com.sharedule.ui.viewmodels.FriendViewModel
 import himanshu.com.sharedule.ui.screens.*
+import androidx.activity.compose.BackHandler
 
 sealed class MainNavItem(val label: String, val icon: ImageVector) {
     object Today : MainNavItem("Today", Icons.Default.DateRange)
@@ -89,6 +90,20 @@ fun ShareduleApp() {
     val dailyTaskViewModel = remember { DailyTaskViewModel(context) }
     val friendViewModel = remember { FriendViewModel(context,) }
     var selectedTab by remember { mutableStateOf<MainNavItem>(MainNavItem.Today) }
+
+    // Handle system back button
+    BackHandler(enabled = true) {
+        when {
+            // If on a main tab (with nav bar), exit app
+            !showProfile && selectedFriend == null && authState is AuthState.SignedIn -> {
+                // Exit app
+                (context as? android.app.Activity)?.finish()
+            }
+            // If in profile or friend detail, go back to previous screen
+            showProfile -> showProfile = false
+            selectedFriend != null -> selectedFriend = null
+        }
+    }
 
     when {
         showProfile && authState is AuthState.SignedIn -> {
