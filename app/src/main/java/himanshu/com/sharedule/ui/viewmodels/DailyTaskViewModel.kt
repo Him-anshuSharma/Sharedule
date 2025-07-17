@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import himanshu.com.sharedule.database.entity.DailyTask
-import himanshu.com.sharedule.database.entity.RecurrenceType
 import himanshu.com.sharedule.database.entity.Recurrence
 import himanshu.com.sharedule.repository.DailyTaskRepository
 import himanshu.com.sharedule.repository.SyncState
@@ -244,12 +243,12 @@ class DailyTaskViewModel(context: Context) : ViewModel() {
             for (task in recurringTasks) {
                 val recurrence = task.recurrence ?: continue
                 val shouldCreate = when (recurrence.type) {
-                    RecurrenceType.DAILY -> true
-                    RecurrenceType.WEEKLY -> {
+                    "DAILY" -> true
+                    "WEEKLY" -> {
                         val cal = Calendar.getInstance().apply { timeInMillis = date }
                         recurrence.daysOfWeek?.contains(cal.get(Calendar.DAY_OF_WEEK)) ?: false
                     }
-                    RecurrenceType.CUSTOM -> {
+                    "CUSTOM" -> {
                         val lastTaskDate = allTasks
                             .filter { t -> t.title == task.title && t.recurrence == task.recurrence }
                             .maxOfOrNull { t -> t.date } ?: task.date

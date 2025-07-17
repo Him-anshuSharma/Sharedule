@@ -8,6 +8,7 @@ import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import androidx.annotation.Keep
 
 @Entity(tableName = "daily_tasks")
 @IgnoreExtraProperties
@@ -28,15 +29,12 @@ data class DailyTask(
 )
 
 // Recurrence options for repeating tasks
+@Keep
 data class Recurrence(
-    val type: RecurrenceType, // DAILY, WEEKLY, CUSTOM
+    val type: String = "", // e.g., "DAILY", "WEEKLY", "CUSTOM"
     val daysOfWeek: List<Int>? = null, // For weekly/custom (0=Sun, 6=Sat)
     val interval: Int? = null // For custom (e.g., every 2 days)
 )
-
-enum class RecurrenceType {
-    NONE, DAILY, WEEKLY, CUSTOM
-}
 
 class RecurrenceTypeConverter {
     @TypeConverter

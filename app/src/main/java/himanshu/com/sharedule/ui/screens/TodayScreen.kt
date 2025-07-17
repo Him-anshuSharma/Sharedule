@@ -82,7 +82,6 @@ import androidx.compose.ui.unit.TextUnit
 import himanshu.com.sharedule.R
 import himanshu.com.sharedule.database.entity.DailyTask
 import himanshu.com.sharedule.database.entity.Recurrence
-import himanshu.com.sharedule.database.entity.RecurrenceType
 import himanshu.com.sharedule.repository.SyncState
 import himanshu.com.sharedule.ui.viewmodels.DailyTaskViewModel
 import java.text.SimpleDateFormat
@@ -638,14 +637,14 @@ fun DetailChip(label: String, value: String, color: Color) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RecurrenceTypeChipRow(
-    selectedType: RecurrenceType,
-    onTypeSelected: (RecurrenceType) -> Unit,
+    selectedType: String,
+    onTypeSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val types = listOf(
-        RecurrenceType.NONE to "None",
-        RecurrenceType.DAILY to "Daily",
-        RecurrenceType.WEEKLY to "Weekly"
+        "NONE" to "None",
+        "DAILY" to "Daily",
+        "WEEKLY" to "Weekly"
     )
     FlowRow(
         modifier = modifier
@@ -731,7 +730,7 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var showRecurrence by remember { mutableStateOf(false) }
-    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
+    var recurrenceType by remember { mutableStateOf("NONE") }
     var daysOfWeek by remember { mutableStateOf(listOf<Int>()) }
     var interval by remember { mutableStateOf(1) }
     var date by remember { mutableStateOf(getTodayMidnightMillis()) }
@@ -808,11 +807,11 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
                     selectedType = recurrenceType,
                     onTypeSelected = {
                         recurrenceType = it
-                        if (it == RecurrenceType.WEEKLY) showWeeklyDialog = true
+                        if (it == "WEEKLY") showWeeklyDialog = true
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (recurrenceType == RecurrenceType.WEEKLY) {
+                if (recurrenceType == "WEEKLY") {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         if (daysOfWeek.isEmpty()) "No days selected" else daysOfWeek.sorted().joinToString(", ") { dayIntToLabel(it) },
@@ -839,25 +838,22 @@ fun AddTaskSection(onAdd: (DailyTask) -> Unit, context: Context) {
         Button(
             onClick = {
                 val recurrence = when (recurrenceType) {
-                    RecurrenceType.NONE -> null
-                    RecurrenceType.DAILY -> Recurrence(RecurrenceType.DAILY)
-                    RecurrenceType.WEEKLY -> Recurrence(
-                        RecurrenceType.WEEKLY,
-                        daysOfWeek = daysOfWeek
-                    )
-                    RecurrenceType.CUSTOM -> null // Not supported in chip UI
+                    "NONE" -> null
+                    "DAILY" -> Recurrence("DAILY")
+                    "WEEKLY" -> Recurrence("WEEKLY", daysOfWeek = daysOfWeek)
+                    else -> null // Not supported in chip UI
                 }
                 onAdd(
                     DailyTask(
                         title = title,
                         description = description.takeIf { it.isNotBlank() },
-                        date = if (recurrenceType == RecurrenceType.NONE) getTodayMidnightMillis() else System.currentTimeMillis(),
+                        date = if (recurrenceType == "NONE") getTodayMidnightMillis() else System.currentTimeMillis(),
                         recurrence = recurrence
                     )
                 )
                 title = ""
                 description = ""
-                recurrenceType = RecurrenceType.NONE
+                recurrenceType = "NONE"
                 daysOfWeek = listOf()
                 interval = 1
                 date = getTodayMidnightMillis()
@@ -1046,7 +1042,7 @@ fun EditTaskDialog(
 ) {
     var title by remember { mutableStateOf(initialTask.title) }
     var description by remember { mutableStateOf(initialTask.description ?: "") }
-    var recurrenceType by remember { mutableStateOf(initialTask.recurrence?.type ?: RecurrenceType.NONE) }
+    var recurrenceType by remember { mutableStateOf(initialTask.recurrence?.type ?: "NONE") }
     var daysOfWeek by remember { mutableStateOf(initialTask.recurrence?.daysOfWeek ?: listOf<Int>()) }
     var showWeeklyDialog by remember { mutableStateOf(false) }
 
@@ -1083,11 +1079,11 @@ fun EditTaskDialog(
                     selectedType = recurrenceType,
                     onTypeSelected = {
                         recurrenceType = it
-                        if (it == RecurrenceType.WEEKLY) showWeeklyDialog = true
+                        if (it == "WEEKLY") showWeeklyDialog = true
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (recurrenceType == RecurrenceType.WEEKLY) {
+                if (recurrenceType == "WEEKLY") {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         if (daysOfWeek.isEmpty()) "No days selected" else daysOfWeek.sorted().joinToString(", ") { dayIntToLabel(it) },
@@ -1104,10 +1100,10 @@ fun EditTaskDialog(
             Button(
                 onClick = {
                     val recurrence = when (recurrenceType) {
-                        RecurrenceType.NONE -> null
-                        RecurrenceType.DAILY -> Recurrence(RecurrenceType.DAILY)
-                        RecurrenceType.WEEKLY -> Recurrence(RecurrenceType.WEEKLY, daysOfWeek = daysOfWeek)
-                        RecurrenceType.CUSTOM -> null // Not supported in chip UI
+                        "NONE" -> null
+                        "DAILY" -> Recurrence("DAILY")
+                        "WEEKLY" -> Recurrence("WEEKLY", daysOfWeek = daysOfWeek)
+                        else -> null // Not supported in chip UI
                     }
                     onSave(
                         initialTask.copy(
