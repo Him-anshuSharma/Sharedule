@@ -1,163 +1,64 @@
-# Sharedule - Google Sign-In with Firebase
+# Sharedule App
 
-A modern Android app with Google Sign-In authentication using Firebase and Jetpack Compose.
+Sharedule is your personal productivity companion, designed to help you organize your daily life, achieve your goals, and stay connected with friends for mutual motivation. Here’s what you can do with Sharedule:
 
-## Features
+## App Functionalities & Features
 
-- 🔐 Google Sign-In authentication
-- 🎨 Modern Material 3 UI with gradient backgrounds
-- 📱 Jetpack Compose UI
-- 🔄 Real-time authentication state management
-- 🚀 Firebase integration
+### 1. Daily Task Management
+- **Create Tasks:** Add new tasks for today or upcoming days, specifying details like title, description, and due date.
+- **Edit & Delete Tasks:** Update or remove tasks as your plans change.
+- **Task Completion:** Mark tasks as complete with a single tap, helping you track your accomplishments.
+- **Recurring Tasks:** Set tasks to repeat daily for habits or ongoing responsibilities.
 
-## Setup Instructions
+### 2. Progress Tracking
+- **Daily Progress Overview:** Instantly see how many tasks you’ve completed today and what’s left.
+- **Visual Progress Indicators:** Progress bars and charts help you visualize your productivity and stay motivated.
+- **History:** Review your past days to see trends and celebrate your consistency.
 
-### 1. Firebase Project Setup
+### 3. Friend System
+- **Add Friends:** Connect with friends by sending and accepting friend requests.
+- **View Friends’ Progress:** See your friends’ daily progress and completed tasks (with their permission), fostering healthy competition and encouragement.
+- **Friend Details:** Tap on a friend to view their profile and shared achievements.
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select an existing one
-3. Add an Android app to your Firebase project:
-   - Package name: `himanshu.com.sharedule`
-   - App nickname: "Sharedule" (optional)
-   - Debug signing certificate SHA-1 (optional for now)
+### 4. Notifications & Reminders
+- **Task Reminders:** Get timely notifications so you never forget an important task.
+- **Friend Activity Alerts:** Receive updates when friends complete tasks or send you requests, keeping you engaged and connected.
 
-### 2. Enable Google Sign-In
+### 5. User Profile
+- **Personalize Your Profile:** Set your name, profile picture, and other details.
+- **View Achievements:** Track your milestones and personal bests within the app.
 
-1. In Firebase Console, go to **Authentication** > **Sign-in method**
-2. Enable **Google** as a sign-in provider
-3. Configure the OAuth consent screen if needed
-4. Add your support email
+### 6. Secure & Simple Login
+- **Easy Sign-In:** Log in quickly and securely to access your personalized task list and friend network.
 
-### 3. Download Configuration
+## Why Use Sharedule?
+- **Stay Organized:** Never lose track of your daily responsibilities.
+- **Boost Motivation:** Visual progress and friendly competition help you stay on track.
+- **Connect & Collaborate:** Achieve more together by sharing progress and supporting friends.
+- **Celebrate Success:** Track your achievements and build lasting habits.
 
-1. Download the `google-services.json` file from Firebase Console
-2. Replace the placeholder `google-services.json` in the `app/` directory with your actual file
+---
 
-### 4. Configure Web Client ID
+## App Screenshots
 
-**Option A: Using Properties File (Recommended)**
-1. Copy `app/src/main/assets/config.template.properties` to `app/src/main/assets/config.properties`
-2. In Firebase Console, go to **Project Settings** > **General**
-3. Scroll down to **Your apps** section
-4. Copy the **Web client ID** (ends with `.apps.googleusercontent.com`)
-5. Replace `YOUR_WEB_CLIENT_ID` in `config.properties` with your actual Web client ID
+### Login Screen
+<img src="screenshots/login_screen.png" alt="Login Screen" width="300" />
 
-**Option B: Using BuildConfig**
-1. In Firebase Console, go to **Project Settings** > **General**
-2. Scroll down to **Your apps** section
-3. Copy the **Web client ID** (ends with `.apps.googleusercontent.com`)
-4. Open `app/build.gradle.kts` and replace `"YOUR_WEB_CLIENT_ID"` in the `buildConfigField` with your actual Web client ID
+### Today's Tasks
+<table><tr>
+<td><img src="screenshots/today_task_1.png" alt="Today Task 1" width="300" /></td>
+<td><img src="screenshots/today_task_2.png" alt="Today Task 2" width="300" /></td>
+</tr></table>
 
-### 5. Build and Run
+### Daily Progress
+<img src="screenshots/progress_screen.png" alt="Progress Screen" width="300" />
 
-1. Sync your project with Gradle files
-2. Build and run the app on your device or emulator
+### Friends List
+<img src="screenshots/friends_screen.png" alt="Friends Screen" width="300" />
 
-## Project Structure
+### Profile
+<img src="screenshots/profile_screen.png" alt="Profile Screen" width="300" />
 
-```
-app/
-├── src/main/
-│   ├── java/himanshu/com/sharedule/
-│   │   ├── auth/
-│   │   │   ├── AuthViewModel.kt          # Authentication logic
-│   │   │   └── AuthState.kt              # Authentication states
-│   │   ├── config/
-│   │   │   ├── AppConfig.kt              # Configuration access
-│   │   │   └── ConfigManager.kt          # Configuration management
-│   │   ├── ui/screens/
-│   │   │   ├── LoginScreen.kt            # Google Sign-In screen
-│   │   │   └── HomeScreen.kt             # Post-login home screen
-│   │   └── MainActivity.kt               # Main activity with navigation
-│   ├── assets/
-│   │   ├── config.properties             # Configuration file (create from template)
-│   │   └── config.template.properties    # Configuration template
-│   └── res/
-│       └── drawable/
-│           └── ic_google.xml             # Google icon
-├── google-services.json                  # Firebase configuration
-└── build.gradle.kts                     # App-level dependencies
-```
+---
 
-## Dependencies
-
-- **Firebase Auth**: For authentication
-- **Google Sign-In**: For Google authentication
-- **Jetpack Compose**: For modern UI
-- **Material 3**: For design components
-- **Lifecycle ViewModel**: For state management
-
-## Authentication Flow
-
-1. **Initial State**: App checks if user is already signed in
-2. **Login Screen**: Beautiful gradient UI with Google Sign-In button
-3. **Authentication**: Handles Google Sign-In flow with Firebase
-4. **Home Screen**: Displays user information and sign-out option
-5. **State Management**: Real-time updates using StateFlow
-
-## Customization
-
-### Colors
-The app uses a beautiful gradient theme. You can customize colors in:
-- `LoginScreen.kt` and `HomeScreen.kt` for the gradient
-- `ui/theme/Color.kt` for app-wide colors
-
-### UI Components
-- Modern card-based design
-- Rounded corners and elevation
-- Responsive layout
-- Loading states and error handling
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Google Sign-In failed"**
-   - Ensure Web client ID is correctly set
-   - Check Firebase project configuration
-   - Verify Google Sign-In is enabled in Firebase Console
-
-2. **"google-services.json not found"**
-   - Download the file from Firebase Console
-   - Place it in the `app/` directory
-   - Sync project with Gradle files
-
-3. **Build errors**
-   - Clean and rebuild project
-   - Check all dependencies are properly added
-   - Ensure Google Services plugin is applied
-
-### Debug Mode
-
-To enable debug logging, add this to your `MainActivity.kt`:
-
-```kotlin
-import com.google.firebase.auth.FirebaseAuth
-
-// In onCreate()
-FirebaseAuth.getInstance().setFirebaseAuthSettings(
-    FirebaseAuthSettings.Builder().setAppVerificationDisabledForTesting(true).build()
-)
-```
-
-## Security Notes
-
-- Never commit your actual `google-services.json` to version control
-- Never commit your actual `config.properties` to version control
-- Use different Firebase projects for development and production
-- Implement proper error handling for production apps
-- Consider adding additional security measures like app verification
-- For production, consider using encrypted storage for sensitive configuration
-
-## Next Steps
-
-After successful authentication, you can extend the app with:
-- User profile management
-- Schedule/task management features
-- Data persistence with Firestore
-- Push notifications
-- Offline support
-
-## License
-
-This project is for educational purposes. Feel free to use and modify as needed. 
+Sharedule is designed for anyone who wants to be more productive, stay accountable, and enjoy the journey of self-improvement with friends. Start organizing your day and achieving your goals with Sharedule! 
