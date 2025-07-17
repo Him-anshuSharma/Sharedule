@@ -15,6 +15,7 @@
 # Ignore Gradle files and local configuration
 .gradle/
 local.properties
+*properties
 
 # Ignore APKs, AABs, and mapping files
 *.apk
