@@ -1,6 +1,7 @@
 package himanshu.com.sharedule.ui.screens
 
 import android.content.Context
+import android.widget.Space
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
@@ -319,6 +320,7 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .padding(bottom = 30.dp)
                             .pointerInput(Unit) {
                                 detectVerticalDragGestures { change, dragAmount ->
                                     if (dragAmount < -10) pieVisible = false
@@ -342,9 +344,11 @@ fun TodayScreen(viewModel: DailyTaskViewModel, onProfileClick: () -> Unit) {
                                 onLongPress = { activeTaskForActions = todayTasks[index] }
                             )
                         }
-                        // Add an invisible spacer at the end to ensure enough scrollable content
-                        item {
-                            Spacer(modifier = Modifier.height(80.dp))
+                        // Add an invisible spacer at the end to ensure enough scrollable
+                        item{
+                            Spacer(
+                                modifier = Modifier.height(200.dp)
+                            )
                         }
                     }
                 }
