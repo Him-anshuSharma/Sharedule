@@ -165,6 +165,10 @@ class DailyTaskRepository(context: Context) {
         }
     }
     
+    suspend fun getTasksByDate(date: Long): List<DailyTask> {
+        return dao.getTasksByDate(date)
+    }
+    
     // Manual sync methods
     suspend fun syncToFirebase() {
         _syncState.value = SyncState.SyncingToFirebase

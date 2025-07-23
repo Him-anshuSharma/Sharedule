@@ -236,8 +236,9 @@ class DailyTaskViewModel(context: Context) : ViewModel() {
     suspend fun ensureRecurringTasksUpToDate() {
         val today = getTodayMidnightMillis()
         val lastProcessed = prefs.getLong(LAST_PROCESSED_KEY, today)
-        val allTasks = repository.getAllTasks().first()
-        val recurringTasks = allTasks.filter { it.recurrence != null }
+        Log.d(TAG, "Last processed date: $lastProcessed")
+        val allTasks = repository.getTasksByDate(lastProcessed)
+        val recurringTasks = allTasks.filter{ it.recurrence != null }
         var date = lastProcessed + 24 * 60 * 60 * 1000L
         while (date <= today) {
             for (task in recurringTasks) {

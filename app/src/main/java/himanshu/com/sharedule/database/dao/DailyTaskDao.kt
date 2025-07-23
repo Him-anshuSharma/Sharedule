@@ -32,6 +32,9 @@ interface DailyTaskDao {
     @Query("SELECT * FROM daily_tasks WHERE isDone = 0 AND date = :date")
     fun getPendingTasksForDate(date: Long): Flow<List<DailyTask>>
 
+    @Query("SELECT * FROM daily_tasks WHERE date = :date")
+    suspend fun getTasksByDate(date: Long): List<DailyTask>
+
     @Query("DELETE FROM daily_tasks")
     suspend fun clearAllTasks()
 }
